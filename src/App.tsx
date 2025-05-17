@@ -6,6 +6,7 @@ import { createNewNote, noteTags } from './utils';
 import ThemeToggle from './components/ThemeToggle';
 import { useTheme, lightTheme, darkTheme } from './theme.tsx';
 import WelcomeScreen from './components/WelcomeScreen';
+import Loader from './components/Loader';
 
 // Animations
 const fadeIn = keyframes`
@@ -346,6 +347,7 @@ const App = () => {
   const [activeTag, setActiveTag] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<SortOption>('lastModified');
   const [showWelcome, setShowWelcome] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const { mode } = useTheme();
   
   // Load notes from localStorage on mount
@@ -440,88 +442,93 @@ const App = () => {
 
   return (
     <AppContainer $theme={mode}>
-      {showWelcome && <WelcomeScreen onComplete={handleWelcomeComplete} />}
-      
-      <Header $theme={mode}>
-        <AppTitle $theme={mode}>
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
-            <path fill={mode === 'dark' ? '#6C8FFF' : '#4C6EF5'} d="M21,2H3C1.9,2,1,2.9,1,4v16c0,1.1,0.9,2,2,2h18c1.1,0,2-0.9,2-2V4C23,2.9,22.1,2,21,2z M21,20H3V4h18V20z"/>
-            <path fill={mode === 'dark' ? '#6C8FFF' : '#4C6EF5'} d="M6,7h12v2H6V7z"/>
-            <path fill={mode === 'dark' ? '#6C8FFF' : '#4C6EF5'} d="M6,11h12v2H6V11z"/>
-            <path fill={mode === 'dark' ? '#6C8FFF' : '#4C6EF5'} d="M6,15h8v2H6V15z"/>
-          </svg>
-          Sticky Notes
-        </AppTitle>
-        <Controls>
-                    <SearchContainer>
-            <SearchIcon $theme={mode}>🔍</SearchIcon>
-            <SearchInput 
-              placeholder="Search notes..."
-              value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
-              $theme={mode}
-            />
-            {searchText && <ClearButton $theme={mode} onClick={() => setSearchText('')}>✗</ClearButton>}
-          </SearchContainer>
+      {isLoading && <Loader onComplete={() => setIsLoading(false)} minDisplayTime={2800} />}
+      {!isLoading && (
+        <>
+          {showWelcome && <WelcomeScreen onComplete={handleWelcomeComplete} />}
           
-          <FilterContainer>
-            {noteTags.slice(0, 5).map(tag => (
-              <FilterButton 
-                key={tag} 
-                $active={tag === activeTag}
-                $theme={mode}
-                onClick={() => toggleTag(tag)}
-              >
-                #{tag}
-              </FilterButton>
+          <Header $theme={mode}>
+            <AppTitle $theme={mode}>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+                <path fill={mode === 'dark' ? '#6C8FFF' : '#4C6EF5'} d="M21,2H3C1.9,2,1,2.9,1,4v16c0,1.1,0.9,2,2,2h18c1.1,0,2-0.9,2-2V4C23,2.9,22.1,2,21,2z M21,20H3V4h18V20z"/>
+                <path fill={mode === 'dark' ? '#6C8FFF' : '#4C6EF5'} d="M6,7h12v2H6V7z"/>
+                <path fill={mode === 'dark' ? '#6C8FFF' : '#4C6EF5'} d="M6,11h12v2H6V11z"/>
+                <path fill={mode === 'dark' ? '#6C8FFF' : '#4C6EF5'} d="M6,15h8v2H6V15z"/>
+              </svg>
+              Sticky Notes
+            </AppTitle>
+            <Controls>
+              <SearchContainer>
+                <SearchIcon $theme={mode}>🔍</SearchIcon>
+                <SearchInput 
+                  placeholder="Search notes..."
+                  value={searchText}
+                  onChange={(e) => setSearchText(e.target.value)}
+                  $theme={mode}
+                />
+                {searchText && <ClearButton $theme={mode} onClick={() => setSearchText('')}>✗</ClearButton>}
+              </SearchContainer>
+              
+              <FilterContainer>
+                {noteTags.slice(0, 5).map(tag => (
+                  <FilterButton 
+                    key={tag} 
+                    $active={tag === activeTag}
+                    $theme={mode}
+                    onClick={() => toggleTag(tag)}
+                  >
+                    #{tag}
+                  </FilterButton>
+                ))}
+                
+                <FilterButton 
+                  $active={sortBy === 'lastModified'}
+                  $theme={mode}
+                  onClick={() => setSortBy('lastModified')}
+                >
+                  Recent
+                </FilterButton>
+                <FilterButton 
+                  $active={sortBy === 'createdAt'} 
+                  $theme={mode}
+                  onClick={() => setSortBy('createdAt')}
+                >
+                  Oldest
+                </FilterButton>
+              </FilterContainer>
+              
+              <ThemeToggle />
+            </Controls>
+          </Header>
+          
+          <Content onDoubleClick={handleDoubleClick}>
+            {filteredNotes.map(note => (
+              <NoteComponent
+                key={note.id}
+                note={note}
+                onUpdate={handleUpdateNote}
+                onDelete={handleDeleteNote}
+                bringToFront={bringNoteToFront}
+                searchTerm={searchText}
+              />
             ))}
             
-            <FilterButton 
-              $active={sortBy === 'lastModified'}
-              $theme={mode}
-              onClick={() => setSortBy('lastModified')}
-            >
-              Recent
-            </FilterButton>
-            <FilterButton 
-              $active={sortBy === 'createdAt'} 
-              $theme={mode}
-              onClick={() => setSortBy('createdAt')}
-            >
-              Oldest
-            </FilterButton>
-          </FilterContainer>
-          
-          <ThemeToggle />
-        </Controls>
-      </Header>
-      
-      <Content onDoubleClick={handleDoubleClick}>
-        {filteredNotes.map(note => (
-          <NoteComponent
-            key={note.id}
-            note={note}
-            onUpdate={handleUpdateNote}
-            onDelete={handleDeleteNote}
-            bringToFront={bringNoteToFront}
-            searchTerm={searchText}
-          />
-        ))}
-        
-        {filteredNotes.length === 0 && (
-          <NoResults $theme={mode}>
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="120" height="120">
-              <path fill={mode === 'dark' ? 'rgba(108, 143, 255, 0.6)' : 'rgba(76, 110, 245, 0.6)'} d="M18,2 L6,2 C4.9,2 4,2.9 4,4 L4,20 C4,21.1 4.9,22 6,22 L18,22 C19.1,22 20,21.1 20,20 L20,4 C20,2.9 19.1,2 18,2 Z M18,20 L6,20 L6,4 L18,4 L18,20 Z"/>
-              <path fill={mode === 'dark' ? 'rgba(108, 143, 255, 0.6)' : 'rgba(76, 110, 245, 0.6)'} d="M8,12 L16,12 L16,14 L8,14 L8,12 Z M8,16 L13,16 L13,18 L8,18 L8,16 Z M8,8 L16,8 L16,10 L8,10 L8,8 Z"/>
-            </svg>
-            <h3>No notes found</h3>
-            <p>Try changing your search or filter, or create a new note to get started</p>
-            <button onClick={handleAddNote}>Create a new note</button>
-          </NoResults>
-        )}
-      </Content>
+            {filteredNotes.length === 0 && (
+              <NoResults $theme={mode}>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="120" height="120">
+                  <path fill={mode === 'dark' ? 'rgba(108, 143, 255, 0.6)' : 'rgba(76, 110, 245, 0.6)'} d="M18,2 L6,2 C4.9,2 4,2.9 4,4 L4,20 C4,21.1 4.9,22 6,22 L18,22 C19.1,22 20,21.1 20,20 L20,4 C20,2.9 19.1,2 18,2 Z M18,20 L6,20 L6,4 L18,4 L18,20 Z"/>
+                  <path fill={mode === 'dark' ? 'rgba(108, 143, 255, 0.6)' : 'rgba(76, 110, 245, 0.6)'} d="M8,12 L16,12 L16,14 L8,14 L8,12 Z M8,16 L13,16 L13,18 L8,18 L8,16 Z M8,8 L16,8 L16,10 L8,10 L8,8 Z"/>
+                </svg>
+                <h3>No notes found</h3>
+                <p>Try changing your search or filter, or create a new note to get started</p>
+                <button onClick={handleAddNote}>Create a new note</button>
+              </NoResults>
+            )}
+          </Content>
 
-      <AddButton onClick={handleAddNote} title="Add new note" $theme={mode}>+</AddButton>
+          <AddButton onClick={handleAddNote} title="Add new note" $theme={mode}>+</AddButton>
+        </>
+      )}
     </AppContainer>
   );
 };
